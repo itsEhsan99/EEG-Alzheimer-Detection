@@ -5,8 +5,8 @@ built on the ds004504 dataset. Work in progress.
 
 ## Status
 - [x] Project setup
-- [ ] Data loading
-- [ ] Preprocessing
-- [ ] Model & evaluation
+- [x] Data loading
+- [x] Preprocessing
+- [x] Model & evaluation
 - [ ] Inference
 - [ ] Web app
