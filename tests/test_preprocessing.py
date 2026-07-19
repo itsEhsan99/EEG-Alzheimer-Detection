@@ -4,8 +4,7 @@ import numpy as np
 import mne
 import pytest
 
-from src.preprocessing import bandpass_filter
-
+from src.preprocessing import bandpass_filter, epoch_signal, normalize_epochs
 
 def make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0):
     """Create a small synthetic Raw object for testing.
@@ -49,3 +48,59 @@ def test_bandpass_rejects_invalid_frequencies():
     raw = make_dummy_raw()
     with pytest.raises(ValueError):
         bandpass_filter(raw, 45.0, 0.5)
+
+
+def test_epoching_shape():
+    """Epoching should return the expected number and shape of windows."""
+    # 10 seconds at 500 Hz, 4 channels -> with 5s epochs, expect 2 windows
+    raw = make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0)
+    epochs = epoch_signal(raw, epoch_seconds=5.0, overlap=0.0)
+
+    assert epochs.shape == (2, 4, 2500)
+
+
+def test_epoching_with_overlap_gives_more_windows():
+    """More overlap should produce more windows from the same signal."""
+    raw = make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0)
+    no_overlap = epoch_signal(raw, epoch_seconds=5.0, overlap=0.0)
+    with_overlap = epoch_signal(raw, epoch_seconds=5.0, overlap=0.5)
+
+    assert with_overlap.shape[0] > no_overlap.shape[0]
+
+
+def test_epoching_rejects_invalid_overlap():
+
+    """Overlap outside [0, 1) should raise a clear error."""
+    raw = make_dummy_raw()
+    with pytest.raises(ValueError):
+        epoch_signal(raw, epoch_seconds=5.0, overlap=1.0)
+
+
+
+def test_normalization_produces_zero_mean_unit_std():
+    """After normalization each epoch/channel should have ~0 mean, ~1 std."""
+    raw = make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0)
+    epochs = epoch_signal(raw, epoch_seconds=5.0)
+    normalized = normalize_epochs(epochs)
+
+    # Mean along the time axis should be ~0, std ~1
+    assert np.allclose(normalized.mean(axis=2), 0.0, atol=1e-6)
+    assert np.allclose(normalized.std(axis=2), 1.0, atol=1e-6)
+
+
+def test_normalization_preserves_shape():
+    """Normalization must not change the array shape."""
+    raw = make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0)
+    epochs = epoch_signal(raw, epoch_seconds=5.0)
+    normalized = normalize_epochs(epochs)
+
+    assert normalized.shape == epochs.shape
+
+
+def test_normalization_rejects_wrong_dimensions():
+    """A non-3D input should raise a clear error."""
+    flat = np.random.default_rng(0).standard_normal((4, 2500))
+    with pytest.raises(ValueError):
+        normalize_epochs(flat)
+
+
