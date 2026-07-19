@@ -78,3 +78,9 @@ def run_loso(X, y, subjects, n_epochs=15):
         "auc": roc_auc_score(all_true, all_prob),
     }
     return overall, per_subject
+
+
+def train_full(X, y, n_epochs=15):
+    """Train a single model on all available data (for deployment)."""
+    return train_one_fold(X, y, n_epochs=n_epochs)
+
