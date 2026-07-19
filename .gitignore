@@ -1,5 +1,6 @@
 # Data and models — never commit these
 data/
+DATA/
 models/
 *.edf
 *.set
