@@ -5,14 +5,24 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from src.inference import load_model, predict_recording
 
 app = FastAPI(title="EEG Alzheimer's Detection")
 
+# Serve the static frontend files (CSS, JS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Load the model once at startup, not on every request.
 model = load_model()
 
+
+@app.get("/app")
+def serve_frontend():
+    """Serve the web interface."""
+    return FileResponse("static/index.html")
 
 @app.get("/")
 def read_root():

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Alzheimer's Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>EEG Alzheimer's Detection</h1>
+        <p class="subtitle">Upload a resting-state EEG recording (.set) to analyze.</p>
+
+        <div class="upload-box">
+            <input type="file" id="fileInput" accept=".set">
+            <button id="analyzeBtn">Analyze</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="result" class="result hidden">
+            <h2>Result</h2>
+            <div class="result-row">
+                <span class="label">Prediction:</span>
+                <span id="prediction" class="value"></span>
+            </div>
+            <div class="result-row">
+                <span class="label">AD probability:</span>
+                <span id="adProb" class="value"></span>
+            </div>
+            <div class="result-row">
+                <span class="label">Windows classified as AD:</span>
+                <span id="fractionAd" class="value"></span>
+            </div>
+            <div class="result-row">
+                <span class="label">Total windows:</span>
+                <span id="nWindows" class="value"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
