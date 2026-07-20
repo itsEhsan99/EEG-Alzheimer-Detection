@@ -1,44 +1,104 @@
-# EEG-based Alzheimer's Detection
+# NeuroGraph — EEG Alzheimer's Analysis
 
-An end-to-end tool for detecting Alzheimer's disease from resting-state EEG,
-built on the ds004504 dataset. Work in progress.
+An end-to-end web tool for analyzing resting-state EEG and screening for
+Alzheimer's disease from brain connectivity, built on the OpenNeuro
+ds004504 dataset. It combines signal processing, a graph neural network,
+and an interactive dashboard.
 
-## Approach
-Recordings are band-pass filtered to the alpha band (8–13 Hz), split into
-5-second epochs, and each epoch is converted to a 19×19 Phase Locking Value
-(PLV) connectivity matrix. A small CNN classifies these matrices, evaluated
-with Leave-One-Subject-Out (LOSO) cross-validation.
+> Decision-support / research prototype — **not a medical device.**
 
-## Status
-- [x] Project setup
-- [x] Data loading
-- [x] Preprocessing (bandpass, epoching, normalization)
-- [x] PLV feature extraction
-- [x] Baseline model & LOSO evaluation
-- [ ] Application
-- [ ] GNN model (planned)
+![NeuroGraph overview](docs/overview.png)
 
-## Results
+## What it does
 
-### Baseline — alpha-band PLV + 2-layer CNN (LOSO)
-Small subset: 10 AD + 10 HC subjects, 15 training epochs per fold.
+Upload a resting-state EEG recording (`.set`) and NeuroGraph lets you:
 
-| Metric | Value |
-|--------|-------|
-| Pooled accuracy | 0.647 |
-| Pooled F1 | 0.689 |
-| Pooled AUC | 0.662 |
-| Mean per-subject accuracy | 0.646 (±0.342) |
+- **Inspect metadata** — sampling rate, channels, duration, filters, montage.
+- **Preprocess** — resample, band-pass and notch filtering, and channel
+  removal, applied consistently across every analysis.
+- **View the raw signal** — choose channels and a time window.
+- **Analyze frequency content** — relative power across delta–gamma bands.
+- **Explore connectivity** — phase-locking-value (PLV) matrices and the
+  strongest connections drawn on a 10–20 head layout, per frequency band.
+- **Run a prediction** — a graph neural network classifies AD vs. healthy
+  controls from alpha-band connectivity graphs.
 
-The high per-subject variance reflects the core cross-subject
-generalization challenge in EEG dementia detection: with few training
-subjects the model captures individual connectivity signatures more than a
-general disease pattern. This is an honest baseline to improve on, not a
-deployable result.
+## How it works
 
-## Known limitations / future work
+Each recording is split into epochs. For connectivity, every epoch becomes
+a 19-node graph (electrodes = nodes, PLV = edges). A 2-layer graph
+convolutional network (GCN) classifies each epoch's graph, and the
+per-epoch predictions are aggregated by soft voting into one
+recording-level result.
+
+## Model
+
+| | |
+|---|---|
+| Architecture | 2-layer GCN + MLP head |
+| Input | 19-node alpha-band PLV graph, band-power node features |
+| Task | AD vs. HC |
+| Aggregation | Soft voting across epochs |
+| Validation | Leave-one-subject-out (subject level) |
+| Baseline | ~85% balanced accuracy (LOSO, AD–HC) |
+
+The connectivity-graph approach and the ~85% LOSO baseline come from prior
+research on this dataset. Reported figures reflect subject-level
+leave-one-subject-out validation, not window-level accuracy.
+
+## Tech stack
+
+Python · FastAPI · PyTorch · MNE · scikit-learn · matplotlib · vanilla
+HTML/CSS/JS frontend. Plots are rendered server-side and streamed to the
+browser as images.
+
+## Project structure
+src/ core library
+data_loader.py load EEG recordings
+preprocessing.py filtering, epoching, normalization
+features.py PLV connectivity, band powers
+gnn.py GCN model + graph construction
+gnn_train.py training on all subjects
+gnn_inference.py recording-level prediction
+visualization.py server-side plots
+api.py FastAPI app and endpoints
+scripts/ dataset building and training scripts
+static/ web frontend (HTML/CSS/JS)
+tests/ unit tests
+
+## Running locally
+
+```bash
+python -m venv venv
+venv\Scripts\activate            # Windows
+pip install -r requirements.txt
+
+# 1. build the dataset and train the model (requires the data locally)
+python scripts/train_gnn.py
+
+# 2. start the app
+uvicorn src.api:app --reload
+# open http://127.0.0.1:8000/app
+```
+
+## Data
+
+This project uses the OpenNeuro **ds004504** dataset (88 subjects, 19-channel
+EEG, 10–20 montage). The data is **not** included in this repository; download
+it from OpenNeuro: https://openneuro.org/datasets/ds004504
+
+Trained models and connectivity arrays are also not committed — they are
+regenerated locally from the data.
+
+## Tests
+
+```bash
+pytest
+```
+
+## Known limitations
+
 - Epoching does not yet respect `boundary` annotations from the
-  preprocessed (derivatives) recordings, so some windows may straddle data
+  preprocessed recordings, so some windows may straddle data
   discontinuities.
-- Subject selection uses simple filename sorting; extend and verify when
-  scaling to all subjects.
+- The prediction is a research prototype and is not clinically validated.
