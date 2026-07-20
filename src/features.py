@@ -78,3 +78,44 @@ def recording_to_plv(raw, low_freq=8.0, high_freq=13.0,
     plv_matrices = [compute_plv(epoch) for epoch in epochs]
     return np.stack(plv_matrices)
 
+from scipy.signal import welch
+
+BANDS = {
+    "Delta": (0.5, 4),
+    "Theta": (4, 8),
+    "Alpha": (8, 13),
+    "Beta": (13, 30),
+    "Gamma": (30, 45),
+}
+
+
+def compute_band_powers(raw, relative=True):
+    """Compute power in each frequency band, per channel, then average.
+
+    Parameters
+    ----------
+    relative : bool
+        If True, return each band as a fraction of total power (0-1),
+        which is far more readable than raw power for EEG.
+
+    Returns
+    -------
+    dict
+        Maps band name -> mean (relative) power across channels.
+    """
+    data = raw.get_data()
+    sfreq = raw.info["sfreq"]
+
+    freqs, psd = welch(data, fs=sfreq, nperseg=int(sfreq * 2), axis=1)
+
+    band_powers = {}
+    for band_name, (low, high) in BANDS.items():
+        mask = (freqs >= low) & (freqs < high)
+        band_powers[band_name] = psd[:, mask].mean(axis=1)  # per channel
+
+    if relative:
+        total = sum(band_powers.values())  # per channel total
+        band_powers = {b: v / total for b, v in band_powers.items()}
+
+    # Average across channels -> one value per band
+    return {b: float(v.mean()) for b, v in band_powers.items()}

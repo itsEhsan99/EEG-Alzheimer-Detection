@@ -3,40 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG Alzheimer's Detection</title>
+    <title>NeuroGraph · EEG Alzheimer's Analysis</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>EEG Alzheimer's Detection</h1>
-        <p class="subtitle">Upload a resting-state EEG recording (.set) to analyze.</p>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">◈</div>
+                <div>
+                    <div class="brand-name">NeuroGraph</div>
+                    <div class="brand-sub">EEG CONNECTIVITY ANALYSIS</div>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Patient EEG file (.set)</label>
+                <label for="fileInput" class="file-button">
+                    <span id="fileName">Choose a .set file…</span>
+                </label>
+                <input type="file" id="fileInput" accept=".set" hidden>
+                <p class="hint">Select a resting-state EEG recording.</p>
+            </div>
+            <button id="loadBtn" class="primary-btn">Load recording</button>
+            <div id="status" class="status"></div>
 
-        <div class="upload-box">
-            <input type="file" id="fileInput" accept=".set">
-            <button id="analyzeBtn">Analyze</button>
-        </div>
+            <div class="sidebar-foot">
+                <div class="foot-title">About</div>
+                <p class="foot-text">
+                    NeuroGraph analyzes resting-state EEG through phase-based
+                    connectivity and a neural network to flag Alzheimer's-related
+                    patterns.
+                </p>
+            </div>
+        </aside>
 
-        <div id="status" class="status"></div>
+        <main class="content">
+            <header class="content-header">
+                <div>
+                    <h1>EEG Alzheimer's Analysis</h1>
+                    <p class="tagline">Connectivity-based analysis of resting-state EEG.</p>
+                </div>
+                <div class="badge">Decision support · not a medical device</div>
+            </header>
 
-        <div id="result" class="result hidden">
-            <h2>Result</h2>
-            <div class="result-row">
-                <span class="label">Prediction:</span>
-                <span id="prediction" class="value"></span>
-            </div>
-            <div class="result-row">
-                <span class="label">AD probability:</span>
-                <span id="adProb" class="value"></span>
-            </div>
-            <div class="result-row">
-                <span class="label">Windows classified as AD:</span>
-                <span id="fractionAd" class="value"></span>
-            </div>
-            <div class="result-row">
-                <span class="label">Total windows:</span>
-                <span id="nWindows" class="value"></span>
-            </div>
-        </div>
+            <nav class="tabs">
+                <button class="tab active" data-tab="overview">Overview</button>
+                <button class="tab" data-tab="prediction">Prediction</button>
+                <button class="tab" data-tab="signal">Signal</button>
+                <button class="tab" data-tab="psd">Frequency</button>
+                <button class="tab" data-tab="connectivity">Connectivity</button>
+            </nav>
+
+            <!-- OVERVIEW -->
+            <section id="tab-overview" class="tab-panel active">
+                <div id="overviewPlaceholder" class="intro">
+                    <div class="intro-brain" id="introBrain"></div>
+                    <h2>Welcome to NeuroGraph</h2>
+                    <p>
+                        Upload a resting-state EEG recording and press
+                        <strong>Load recording</strong> to explore its signal,
+                        frequency content, and brain connectivity — and to run
+                        an Alzheimer's screening model.
+                    </p>
+                    <div class="intro-steps">
+                        <div class="intro-step"><span class="step-num a">1</span> Load a .set file</div>
+                        <div class="intro-step"><span class="step-num b">2</span> Explore signal & bands</div>
+                        <div class="intro-step"><span class="step-num a">3</span> Inspect connectivity</div>
+                        <div class="intro-step"><span class="step-num b">4</span> Run prediction</div>
+                    </div>
+                </div>
+
+                <div id="overviewContent" class="hidden">
+                    <div class="hero-banner">
+                        <div class="hero-brain" id="heroBrain"></div>
+                        <div class="hero-text">
+                            <div class="hero-file" id="ovFilename"></div>
+                            <div class="hero-sub">Resting-state EEG · eyes closed</div>
+                            <div class="hero-pills">
+                                <span class="pill pill-a" id="ovDuration"></span>
+                                <span class="pill pill-b" id="ovChannels"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-card">
+                            <div class="meta-icon icon-a">⏱</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Sampling rate</div>
+                                <div class="meta-value" id="mSfreq"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-b">📡</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Channels</div>
+                                <div class="meta-value" id="mChannels"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-a">⏳</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Duration</div>
+                                <div class="meta-value" id="mDuration"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-b">🎚</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Filter band</div>
+                                <div class="meta-value" id="mFilter"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-a">⚠️</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Bad channels</div>
+                                <div class="meta-value" id="mBads"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-b">🔬</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Recording device</div>
+                                <div class="meta-value">Nihon Kohden 2100</div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-a">📊</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Total samples</div>
+                                <div class="meta-value" id="mSamples"></div>
+                            </div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-icon icon-b">🧭</div>
+                            <div class="meta-body">
+                                <div class="meta-label">Montage</div>
+                                <div class="meta-value">10–20 system</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="capabilities">
+                        <div class="cap-title">Available analyses</div>
+                        <div class="cap-list">
+                            <span class="cap">Signal viewer</span>
+                            <span class="cap">Frequency bands (PSD)</span>
+                            <span class="cap">PLV connectivity</span>
+                            <span class="cap">Head topography</span>
+                            <span class="cap">AD prediction</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PREDICTION -->
+            <section id="tab-prediction" class="tab-panel">
+                <div class="pred-layout">
+                    <div class="pred-left">
+                        <div class="model-card">
+                            <div class="model-head">
+                                <span class="model-name">PLVNet</span>
+                                <span class="model-tag">CNN · connectivity</span>
+                            </div>
+                            <div class="model-arch" id="modelArch"></div>
+                            <div class="model-facts">
+                                <div class="mf"><span>Input</span><strong>19×19 PLV (alpha)</strong></div>
+                                <div class="mf"><span>Type</span><strong>2-layer CNN + GAP</strong></div>
+                                <div class="mf"><span>Task</span><strong>AD vs HC</strong></div>
+                                <div class="mf"><span>Validation</span><strong>Leave-one-subject-out</strong></div>
+                            </div>
+                        </div>
+                        <button id="analyzeBtn" class="primary-btn wide">Run AD prediction</button>
+                    </div>
+
+                    <div class="pred-right">
+                        <div id="predPlaceholder" class="pred-empty">
+                            <div class="placeholder-icon">🧬</div>
+                            <p>Run the model to see a recording-level assessment.</p>
+                        </div>
+                        <div id="result" class="result hidden">
+                            <div class="result-hero">
+                                <span id="prediction" class="hero-label"></span>
+                                <span class="hero-caption">Recording-level assessment</span>
+                            </div>
+                            <div class="cards two">
+                                <div class="card">
+                                    <div class="card-title">AD PROBABILITY</div>
+                                    <div id="adProb" class="card-value accent-cyan"></div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-title">TOTAL WINDOWS</div>
+                                    <div id="nWindows" class="card-value accent-purple"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SIGNAL -->
+            <section id="tab-signal" class="tab-panel">
+                <div class="controls">
+                    <div class="control-field">
+                        <label>Start (s)</label>
+                        <input type="number" id="startTime" value="0" min="0" step="1">
+                    </div>
+                    <div class="control-field">
+                        <label>Duration (s)</label>
+                        <input type="number" id="duration" value="10" min="1" step="1">
+                    </div>
+                    <button id="signalBtn" class="secondary-btn">Show signal</button>
+                </div>
+                <div class="channel-picker">
+                    <div class="channel-picker-header">
+                        <span>Channels</span>
+                        <div>
+                            <button id="selectAllCh" class="mini-btn">All</button>
+                            <button id="clearCh" class="mini-btn">None</button>
+                        </div>
+                    </div>
+                    <div id="channelList" class="channel-list"></div>
+                </div>
+                <div id="signalContainer" class="plot-container hidden">
+                    <img id="signalImg" alt="Raw EEG signal" class="plot-img">
+                    <p class="plot-desc">Selected channels over the chosen time window.</p>
+                </div>
+            </section>
+
+            <!-- PSD -->
+            <section id="tab-psd" class="tab-panel">
+                <div class="info-strip">
+                    <div class="info-band"><span class="dot" style="background:#3b82f6"></span>Delta</div>
+                    <div class="info-band"><span class="dot" style="background:#8b5cf6"></span>Theta</div>
+                    <div class="info-band"><span class="dot" style="background:#f59e0b"></span>Alpha</div>
+                    <div class="info-band"><span class="dot" style="background:#ef4444"></span>Beta</div>
+                    <div class="info-band"><span class="dot" style="background:#10b981"></span>Gamma</div>
+                </div>
+                <button id="psdBtn" class="secondary-btn">Show band powers</button>
+                <div id="psdContainer" class="plot-container hidden">
+                    <img id="psdImg" alt="Band powers" class="plot-img">
+                    <p class="plot-desc">Relative power (%) in each frequency band, averaged across channels.</p>
+                </div>
+            </section>
+
+            <!-- CONNECTIVITY -->
+            <section id="tab-connectivity" class="tab-panel">
+                <label class="control-label">Frequency band</label>
+                <div id="bandPicker" class="band-picker"></div>
+                <div class="controls">
+                    <button id="heatmapBtn" class="secondary-btn">PLV heatmap</button>
+                    <button id="topomapBtn" class="secondary-btn">Strongest connections</button>
+                </div>
+                <div id="connContainer" class="plot-container hidden">
+                    <img id="connImg" alt="PLV connectivity" class="plot-img">
+                    <p id="connDesc" class="plot-desc"></p>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script src="/static/app.js"></script>
