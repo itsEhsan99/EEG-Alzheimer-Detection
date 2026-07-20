@@ -11,13 +11,8 @@ const BANDS = [
 ];
 let selectedBand = "alpha";
 
-// Central preprocessing state — applied to every analysis request.
 const preprocessing = {
-    resample_freq: 0,
-    low_freq: 0,
-    high_freq: 0,
-    notch_freq: 0,
-    drop_channels: "",
+    resample_freq: 0, low_freq: 0, high_freq: 0, notch_freq: 0, drop_channels: "",
 };
 
 const fileInput = document.getElementById("fileInput");
@@ -45,7 +40,6 @@ function requireFile() {
     return file;
 }
 
-// Append the file + preprocessing settings + any extra fields to a request.
 async function fetchPlot(endpoint, img, container, btn, statusMsg, extra = {}) {
     const file = requireFile();
     if (!file) return;
@@ -72,7 +66,6 @@ async function fetchPlot(endpoint, img, container, btn, statusMsg, extra = {}) {
     }
 }
 
-// Brain SVG
 function brainSvg(size = 120) {
     return `
     <svg width="${size}" height="${size * 0.92}" viewBox="0 0 120 110">
@@ -93,44 +86,32 @@ function brainSvg(size = 120) {
 document.getElementById("introBrain").innerHTML = brainSvg(150);
 document.getElementById("heroBrain").innerHTML = brainSvg(120);
 
-// Model architecture SVG
 function modelArchSvg() {
     return `
     <svg width="260" height="120" viewBox="0 0 260 120">
-      <!-- graph input: a few connected nodes -->
-      <circle cx="18" cy="35" r="5" fill="#22d3ee"/>
-      <circle cx="40" cy="20" r="5" fill="#22d3ee"/>
-      <circle cx="45" cy="55" r="5" fill="#22d3ee"/>
-      <circle cx="20" cy="72" r="5" fill="#22d3ee"/>
+      <circle cx="18" cy="35" r="5" fill="#22d3ee"/><circle cx="40" cy="20" r="5" fill="#22d3ee"/>
+      <circle cx="45" cy="55" r="5" fill="#22d3ee"/><circle cx="20" cy="72" r="5" fill="#22d3ee"/>
       <g stroke="#2a3a52" stroke-width="1">
-        <line x1="18" y1="35" x2="40" y2="20"/>
-        <line x1="18" y1="35" x2="45" y2="55"/>
-        <line x1="45" y1="55" x2="20" y2="72"/>
-        <line x1="40" y1="20" x2="45" y2="55"/>
+        <line x1="18" y1="35" x2="40" y2="20"/><line x1="18" y1="35" x2="45" y2="55"/>
+        <line x1="45" y1="55" x2="20" y2="72"/><line x1="40" y1="20" x2="45" y2="55"/>
       </g>
       <text x="32" y="92" fill="#94a3b8" font-size="8" text-anchor="middle">PLV graph</text>
-      <!-- GCN layers -->
       <rect x="78" y="30" width="30" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
       <text x="93" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">GCN 1</text>
       <rect x="120" y="30" width="30" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
       <text x="135" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">GCN 2</text>
-      <!-- MLP head -->
       <rect x="162" y="42" width="28" height="26" rx="4" fill="#7c3aed22" stroke="#a78bfa"/>
       <text x="176" y="82" fill="#94a3b8" font-size="8" text-anchor="middle">MLP</text>
-      <!-- output -->
       <text x="228" y="51" fill="#22d3ee" font-size="9" text-anchor="middle">AD</text>
       <text x="228" y="66" fill="#a78bfa" font-size="9" text-anchor="middle">HC</text>
       <g stroke="#2a3a52" stroke-width="1.2">
-        <line x1="52" y1="50" x2="78" y2="50"/>
-        <line x1="108" y1="55" x2="120" y2="55"/>
-        <line x1="150" y1="55" x2="162" y2="55"/>
-        <line x1="190" y1="55" x2="214" y2="55"/>
+        <line x1="52" y1="50" x2="78" y2="50"/><line x1="108" y1="55" x2="120" y2="55"/>
+        <line x1="150" y1="55" x2="162" y2="55"/><line x1="190" y1="55" x2="214" y2="55"/>
       </g>
     </svg>`;
 }
 document.getElementById("modelArch").innerHTML = modelArchSvg();
 
-// Load recording -> metadata
 loadBtn.addEventListener("click", async () => {
     const file = requireFile();
     if (!file) return;
@@ -164,8 +145,11 @@ loadBtn.addEventListener("click", async () => {
     }
 });
 
-// Prediction
+// Prediction — with percentage and color state
 const analyzeBtn = document.getElementById("analyzeBtn");
+const resultHero = document.getElementById("resultHero");
+const adProbEl = document.getElementById("adProb");
+
 analyzeBtn.addEventListener("click", async () => {
     const file = requireFile();
     if (!file) return;
@@ -180,9 +164,24 @@ analyzeBtn.addEventListener("click", async () => {
             throw new Error(error.detail || "Something went wrong.");
         }
         const data = await response.json();
+
+        // Show label
         document.getElementById("prediction").textContent = data.prediction;
-        document.getElementById("adProb").textContent = data.ad_probability;
+
+        // Show AD probability as a percentage
+        const pct = Math.round(data.ad_probability * 100);
+        adProbEl.textContent = pct + "%";
+
+        // Total windows
         document.getElementById("nWindows").textContent = data.n_windows;
+
+        // Color state: red for AD, green for HC
+        const isAD = data.prediction === "AD";
+        resultHero.classList.remove("is-ad", "is-hc");
+        adProbEl.classList.remove("is-ad", "is-hc");
+        resultHero.classList.add(isAD ? "is-ad" : "is-hc");
+        adProbEl.classList.add(isAD ? "is-ad" : "is-hc");
+
         document.getElementById("predPlaceholder").classList.add("hidden");
         document.getElementById("result").classList.remove("hidden");
         statusDiv.textContent = "";
@@ -193,7 +192,7 @@ analyzeBtn.addEventListener("click", async () => {
     }
 });
 
-// Signal-tab channel checkboxes
+// Channels
 const channelList = document.getElementById("channelList");
 CHANNELS.forEach(ch => {
     const label = document.createElement("label");
@@ -212,7 +211,7 @@ document.getElementById("clearCh").addEventListener("click", () => {
     channelList.querySelectorAll("input").forEach(b => b.checked = false);
 });
 
-// Preprocessing-tab drop-channel checkboxes
+// Preprocessing drop-channel checkboxes
 const ppChannelList = document.getElementById("ppChannelList");
 CHANNELS.forEach(ch => {
     const label = document.createElement("label");
@@ -221,7 +220,6 @@ CHANNELS.forEach(ch => {
     ppChannelList.appendChild(label);
 });
 
-// Apply / reset preprocessing
 const applyPpBtn = document.getElementById("applyPpBtn");
 const resetPpBtn = document.getElementById("resetPpBtn");
 const ppStatus = document.getElementById("ppStatus");
@@ -235,7 +233,6 @@ function updatePreprocessingSummary() {
     if (preprocessing.high_freq > 0) parts.push(`LP ${preprocessing.high_freq} Hz`);
     if (preprocessing.notch_freq > 0) parts.push(`Notch ${preprocessing.notch_freq} Hz`);
     if (preprocessing.drop_channels) parts.push(`Drop: ${preprocessing.drop_channels}`);
-
     if (parts.length === 0) {
         ppSummary.classList.add("hidden");
     } else {
@@ -249,12 +246,9 @@ applyPpBtn.addEventListener("click", () => {
     preprocessing.low_freq = parseFloat(document.getElementById("ppLow").value) || 0;
     preprocessing.high_freq = parseFloat(document.getElementById("ppHigh").value) || 0;
     preprocessing.notch_freq = parseFloat(document.getElementById("ppNotch").value) || 0;
-
-    // Dropped = the channels that are UNCHECKED
     const dropped = Array.from(ppChannelList.querySelectorAll("input[type=checkbox]"))
         .filter(b => !b.checked).map(b => b.value);
     preprocessing.drop_channels = dropped.join(",");
-
     updatePreprocessingSummary();
     ppStatus.textContent = "Applied ✓ — analyses will use these settings.";
     setTimeout(() => { ppStatus.textContent = ""; }, 3000);
@@ -276,7 +270,6 @@ resetPpBtn.addEventListener("click", () => {
     setTimeout(() => { ppStatus.textContent = ""; }, 3000);
 });
 
-// Band picker
 function waveSvg(waves) {
     const w = 60, h = 24, mid = h / 2;
     let d = `M 0 ${mid}`;
@@ -301,7 +294,6 @@ BANDS.forEach(b => {
     bandPicker.appendChild(div);
 });
 
-// Signal
 const signalBtn = document.getElementById("signalBtn");
 signalBtn.addEventListener("click", () => {
     fetchPlot("/signal",
@@ -314,7 +306,6 @@ signalBtn.addEventListener("click", () => {
         });
 });
 
-// PSD
 const psdBtn = document.getElementById("psdBtn");
 psdBtn.addEventListener("click", () => {
     fetchPlot("/psd",
@@ -323,7 +314,6 @@ psdBtn.addEventListener("click", () => {
         psdBtn, "Computing band powers…");
 });
 
-// Connectivity
 const heatmapBtn = document.getElementById("heatmapBtn");
 const topomapBtn = document.getElementById("topomapBtn");
 const connImg = document.getElementById("connImg");

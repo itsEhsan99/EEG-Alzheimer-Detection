@@ -124,7 +124,6 @@ h1 { font-size: 1.8rem; margin-bottom: 6px; }
 .cap-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .cap { font-size: 0.82rem; color: #cbd5e1; background: #131c30; border: 1px solid #2a3a52; border-radius: 8px; padding: 8px 14px; }
 
-/* Preprocessing */
 .pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .pp-card { background: #0d1424; border: 1px solid #1e293b; border-radius: 14px; padding: 18px; }
 .pp-head { display: flex; align-items: center; gap: 10px; font-weight: 600; color: #f1f5f9; margin-bottom: 14px; }
@@ -155,16 +154,30 @@ h1 { font-size: 1.8rem; margin-bottom: 6px; }
 
 .result-hero {
     background: linear-gradient(135deg, #1a2234, #0d1424); border: 1px solid #2a3a52;
-    border-radius: 16px; padding: 28px; margin-bottom: 16px;
+    border-radius: 16px; padding: 28px; margin-bottom: 16px; transition: all 0.3s;
 }
 .hero-label { display: block; font-size: 2.4rem; font-weight: 800; color: #f59e0b; }
 .hero-caption { color: #64748b; font-size: 0.85rem; }
+
+/* Result color states */
+.result-hero.is-ad {
+    background: linear-gradient(135deg, #3a1520, #1a0d12);
+    border-color: #ef4444;
+}
+.result-hero.is-ad .hero-label { color: #f87171; }
+.result-hero.is-hc {
+    background: linear-gradient(135deg, #10281e, #0d1a14);
+    border-color: #10b981;
+}
+.result-hero.is-hc .hero-label { color: #34d399; }
+
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .cards.two { grid-template-columns: repeat(2, 1fr); }
 .card { background: #0d1424; border: 1px solid #1e293b; border-radius: 14px; padding: 20px; }
 .card-title { font-size: 0.7rem; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
 .card-value { font-size: 1.9rem; font-weight: 700; color: #f1f5f9; }
-.accent-cyan { color: #22d3ee; }
+.card-value.is-ad { color: #f87171; }
+.card-value.is-hc { color: #34d399; }
 .accent-purple { color: #a78bfa; }
 
 .controls { display: flex; align-items: flex-end; gap: 14px; margin: 16px 0; }

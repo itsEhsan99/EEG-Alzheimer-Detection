@@ -48,7 +48,7 @@
                     <h1>EEG Alzheimer's Analysis</h1>
                     <p class="tagline">Connectivity-based analysis of resting-state EEG.</p>
                 </div>
-                <div class="badge">Decision support · not a medical device</div>
+                <div class="badge">Research prototype · not for clinical use</div>
             </header>
 
             <nav class="tabs">
@@ -289,7 +289,7 @@
                                 <div class="mf"><span>Input</span><strong>19-node PLV graph (alpha)</strong></div>
                                 <div class="mf"><span>Type</span><strong>2-layer GCN + MLP</strong></div>
                                 <div class="mf"><span>Aggregation</span><strong>Soft voting over epochs</strong></div>
-                                <div class="mf"><span>Baseline</span><strong>85% bal. acc (LOSO)</strong></div>
+                                <div class="mf"><span>Baseline</span><strong>~85% bal. acc (LOSO)</strong></div>
                             </div>
                         </div>
                         <button id="analyzeBtn" class="primary-btn wide">Run AD prediction</button>
@@ -301,14 +301,14 @@
                             <p>Run the model to see a recording-level assessment.</p>
                         </div>
                         <div id="result" class="result hidden">
-                            <div class="result-hero">
+                            <div id="resultHero" class="result-hero">
                                 <span id="prediction" class="hero-label"></span>
                                 <span class="hero-caption">Recording-level assessment</span>
                             </div>
                             <div class="cards two">
                                 <div class="card">
                                     <div class="card-title">AD PROBABILITY</div>
-                                    <div id="adProb" class="card-value accent-cyan"></div>
+                                    <div id="adProb" class="card-value"></div>
                                 </div>
                                 <div class="card">
                                     <div class="card-title">TOTAL WINDOWS</div>
