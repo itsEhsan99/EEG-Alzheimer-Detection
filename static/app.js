@@ -11,6 +11,15 @@ const BANDS = [
 ];
 let selectedBand = "alpha";
 
+// Central preprocessing state — applied to every analysis request.
+const preprocessing = {
+    resample_freq: 0,
+    low_freq: 0,
+    high_freq: 0,
+    notch_freq: 0,
+    drop_channels: "",
+};
+
 const fileInput = document.getElementById("fileInput");
 const fileName = document.getElementById("fileName");
 const loadBtn = document.getElementById("loadBtn");
@@ -36,6 +45,7 @@ function requireFile() {
     return file;
 }
 
+// Append the file + preprocessing settings + any extra fields to a request.
 async function fetchPlot(endpoint, img, container, btn, statusMsg, extra = {}) {
     const file = requireFile();
     if (!file) return;
@@ -44,6 +54,7 @@ async function fetchPlot(endpoint, img, container, btn, statusMsg, extra = {}) {
     try {
         const formData = new FormData();
         formData.append("file", file);
+        for (const [k, v] of Object.entries(preprocessing)) formData.append(k, v);
         for (const [k, v] of Object.entries(extra)) formData.append(k, v);
         const response = await fetch(endpoint, { method: "POST", body: formData });
         if (!response.ok) {
@@ -61,28 +72,18 @@ async function fetchPlot(endpoint, img, container, btn, statusMsg, extra = {}) {
     }
 }
 
-// Brain SVG with EEG waves on both sides
+// Brain SVG
 function brainSvg(size = 120) {
-    const s = size, half = s / 2;
     return `
-    <svg width="${s}" height="${s * 0.92}" viewBox="0 0 120 110">
+    <svg width="${size}" height="${size * 0.92}" viewBox="0 0 120 110">
       <g fill="none" stroke="#22d3ee" stroke-width="1" opacity="0.55">
-        <path d="M4 30 Q11 20 18 30 T32 30"/>
-        <path d="M4 55 Q11 45 18 55 T32 55"/>
-        <path d="M4 80 Q11 70 18 80 T32 80"/>
+        <path d="M4 30 Q11 20 18 30 T32 30"/><path d="M4 55 Q11 45 18 55 T32 55"/><path d="M4 80 Q11 70 18 80 T32 80"/>
       </g>
       <g fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.55">
-        <path d="M88 30 Q95 20 102 30 T116 30"/>
-        <path d="M88 55 Q95 45 102 55 T116 55"/>
-        <path d="M88 80 Q95 70 102 80 T116 80"/>
+        <path d="M88 30 Q95 20 102 30 T116 30"/><path d="M88 55 Q95 45 102 55 T116 55"/><path d="M88 80 Q95 70 102 80 T116 80"/>
       </g>
-      <path d="M60 16
-               C43 16 37 29 39 40
-               C28 42 28 59 39 63
-               C37 75 50 84 60 79
-               C70 84 83 75 81 63
-               C92 59 92 42 81 40
-               C83 29 77 16 60 16 Z"
+      <path d="M60 16 C43 16 37 29 39 40 C28 42 28 59 39 63 C37 75 50 84 60 79
+               C70 84 83 75 81 63 C92 59 92 42 81 40 C83 29 77 16 60 16 Z"
             fill="#14203a" stroke="#f59e0b" stroke-width="1.6"/>
       <path d="M60 18 L60 79" stroke="#f59e0b" stroke-width="1" opacity="0.5"/>
       <path d="M49 28 Q56 40 49 50 Q42 60 51 71" stroke="#f59e0b" stroke-width="0.9" fill="none" opacity="0.45"/>
@@ -92,36 +93,38 @@ function brainSvg(size = 120) {
 document.getElementById("introBrain").innerHTML = brainSvg(150);
 document.getElementById("heroBrain").innerHTML = brainSvg(120);
 
-// Model architecture diagram (SVG)
+// Model architecture SVG
 function modelArchSvg() {
     return `
     <svg width="260" height="120" viewBox="0 0 260 120">
-      <!-- input matrix -->
-      <rect x="6" y="35" width="40" height="40" rx="4" fill="#0e749033" stroke="#22d3ee"/>
-      <text x="26" y="90" fill="#94a3b8" font-size="8" text-anchor="middle">PLV 19×19</text>
-      <!-- conv1 -->
-      <rect x="66" y="30" width="26" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
-      <text x="79" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">Conv 8</text>
-      <!-- conv2 -->
-      <rect x="108" y="30" width="26" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
-      <text x="121" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">Conv 16</text>
-      <!-- GAP -->
-      <rect x="150" y="42" width="26" height="26" rx="4" fill="#7c3aed22" stroke="#a78bfa"/>
-      <text x="163" y="82" fill="#94a3b8" font-size="8" text-anchor="middle">GAP</text>
-      <!-- FC -->
-      <circle cx="205" cy="47" r="6" fill="#f59e0b"/>
-      <circle cx="205" cy="63" r="6" fill="#f59e0b"/>
-      <text x="205" y="82" fill="#94a3b8" font-size="8" text-anchor="middle">Dense</text>
+      <!-- graph input: a few connected nodes -->
+      <circle cx="18" cy="35" r="5" fill="#22d3ee"/>
+      <circle cx="40" cy="20" r="5" fill="#22d3ee"/>
+      <circle cx="45" cy="55" r="5" fill="#22d3ee"/>
+      <circle cx="20" cy="72" r="5" fill="#22d3ee"/>
+      <g stroke="#2a3a52" stroke-width="1">
+        <line x1="18" y1="35" x2="40" y2="20"/>
+        <line x1="18" y1="35" x2="45" y2="55"/>
+        <line x1="45" y1="55" x2="20" y2="72"/>
+        <line x1="40" y1="20" x2="45" y2="55"/>
+      </g>
+      <text x="32" y="92" fill="#94a3b8" font-size="8" text-anchor="middle">PLV graph</text>
+      <!-- GCN layers -->
+      <rect x="78" y="30" width="30" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
+      <text x="93" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">GCN 1</text>
+      <rect x="120" y="30" width="30" height="50" rx="4" fill="#1a2234" stroke="#f59e0b"/>
+      <text x="135" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">GCN 2</text>
+      <!-- MLP head -->
+      <rect x="162" y="42" width="28" height="26" rx="4" fill="#7c3aed22" stroke="#a78bfa"/>
+      <text x="176" y="82" fill="#94a3b8" font-size="8" text-anchor="middle">MLP</text>
       <!-- output -->
-      <text x="240" y="51" fill="#22d3ee" font-size="9" text-anchor="middle">AD</text>
-      <text x="240" y="66" fill="#a78bfa" font-size="9" text-anchor="middle">HC</text>
-      <!-- arrows -->
+      <text x="228" y="51" fill="#22d3ee" font-size="9" text-anchor="middle">AD</text>
+      <text x="228" y="66" fill="#a78bfa" font-size="9" text-anchor="middle">HC</text>
       <g stroke="#2a3a52" stroke-width="1.2">
-        <line x1="46" y1="55" x2="66" y2="55"/>
-        <line x1="92" y1="55" x2="108" y2="55"/>
-        <line x1="134" y1="55" x2="150" y2="55"/>
-        <line x1="176" y1="55" x2="197" y2="55"/>
-        <line x1="211" y1="55" x2="228" y2="55"/>
+        <line x1="52" y1="50" x2="78" y2="50"/>
+        <line x1="108" y1="55" x2="120" y2="55"/>
+        <line x1="150" y1="55" x2="162" y2="55"/>
+        <line x1="190" y1="55" x2="214" y2="55"/>
       </g>
     </svg>`;
 }
@@ -190,7 +193,7 @@ analyzeBtn.addEventListener("click", async () => {
     }
 });
 
-// Channels
+// Signal-tab channel checkboxes
 const channelList = document.getElementById("channelList");
 CHANNELS.forEach(ch => {
     const label = document.createElement("label");
@@ -207,6 +210,70 @@ document.getElementById("selectAllCh").addEventListener("click", () => {
 });
 document.getElementById("clearCh").addEventListener("click", () => {
     channelList.querySelectorAll("input").forEach(b => b.checked = false);
+});
+
+// Preprocessing-tab drop-channel checkboxes
+const ppChannelList = document.getElementById("ppChannelList");
+CHANNELS.forEach(ch => {
+    const label = document.createElement("label");
+    label.className = "channel-chip";
+    label.innerHTML = `<input type="checkbox" value="${ch}" checked> ${ch}`;
+    ppChannelList.appendChild(label);
+});
+
+// Apply / reset preprocessing
+const applyPpBtn = document.getElementById("applyPpBtn");
+const resetPpBtn = document.getElementById("resetPpBtn");
+const ppStatus = document.getElementById("ppStatus");
+const ppSummary = document.getElementById("ppSummary");
+const ppSummaryText = document.getElementById("ppSummaryText");
+
+function updatePreprocessingSummary() {
+    const parts = [];
+    if (preprocessing.resample_freq > 0) parts.push(`Resample ${preprocessing.resample_freq} Hz`);
+    if (preprocessing.low_freq > 0) parts.push(`HP ${preprocessing.low_freq} Hz`);
+    if (preprocessing.high_freq > 0) parts.push(`LP ${preprocessing.high_freq} Hz`);
+    if (preprocessing.notch_freq > 0) parts.push(`Notch ${preprocessing.notch_freq} Hz`);
+    if (preprocessing.drop_channels) parts.push(`Drop: ${preprocessing.drop_channels}`);
+
+    if (parts.length === 0) {
+        ppSummary.classList.add("hidden");
+    } else {
+        ppSummaryText.textContent = parts.join(" · ");
+        ppSummary.classList.remove("hidden");
+    }
+}
+
+applyPpBtn.addEventListener("click", () => {
+    preprocessing.resample_freq = parseFloat(document.getElementById("ppResample").value) || 0;
+    preprocessing.low_freq = parseFloat(document.getElementById("ppLow").value) || 0;
+    preprocessing.high_freq = parseFloat(document.getElementById("ppHigh").value) || 0;
+    preprocessing.notch_freq = parseFloat(document.getElementById("ppNotch").value) || 0;
+
+    // Dropped = the channels that are UNCHECKED
+    const dropped = Array.from(ppChannelList.querySelectorAll("input[type=checkbox]"))
+        .filter(b => !b.checked).map(b => b.value);
+    preprocessing.drop_channels = dropped.join(",");
+
+    updatePreprocessingSummary();
+    ppStatus.textContent = "Applied ✓ — analyses will use these settings.";
+    setTimeout(() => { ppStatus.textContent = ""; }, 3000);
+});
+
+resetPpBtn.addEventListener("click", () => {
+    document.getElementById("ppResample").value = "0";
+    document.getElementById("ppLow").value = "0";
+    document.getElementById("ppHigh").value = "0";
+    document.getElementById("ppNotch").value = "0";
+    ppChannelList.querySelectorAll("input").forEach(b => b.checked = true);
+    preprocessing.resample_freq = 0;
+    preprocessing.low_freq = 0;
+    preprocessing.high_freq = 0;
+    preprocessing.notch_freq = 0;
+    preprocessing.drop_channels = "";
+    updatePreprocessingSummary();
+    ppStatus.textContent = "Reset to original.";
+    setTimeout(() => { ppStatus.textContent = ""; }, 3000);
 });
 
 // Band picker

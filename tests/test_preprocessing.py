@@ -3,8 +3,7 @@
 import numpy as np
 import mne
 import pytest
-
-from src.preprocessing import bandpass_filter, epoch_signal, normalize_epochs
+from src.preprocessing import (bandpass_filter, epoch_signal, normalize_epochs, apply_preprocessing)
 
 def make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0):
     """Create a small synthetic Raw object for testing.
@@ -102,5 +101,21 @@ def test_normalization_rejects_wrong_dimensions():
     flat = np.random.default_rng(0).standard_normal((4, 2500))
     with pytest.raises(ValueError):
         normalize_epochs(flat)
+
+def test_apply_preprocessing_resample_and_drop():
+    """Preprocessing should drop channels and change the sampling rate."""
+    raw = make_dummy_raw(sfreq=500.0, n_channels=4, duration=10.0)
+    original_names = list(raw.ch_names)
+
+    processed = apply_preprocessing(
+        raw, resample_freq=250.0, drop_channels=[original_names[0]])
+
+    # One channel dropped
+    assert len(processed.ch_names) == 3
+    assert original_names[0] not in processed.ch_names
+    # Sampling rate changed
+    assert processed.info["sfreq"] == 250.0
+    # Original untouched
+    assert len(raw.ch_names) == 4
 
 

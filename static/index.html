@@ -27,6 +27,11 @@
             <button id="loadBtn" class="primary-btn">Load recording</button>
             <div id="status" class="status"></div>
 
+            <div id="ppSummary" class="pp-summary hidden">
+                <div class="foot-title">Active preprocessing</div>
+                <div id="ppSummaryText" class="foot-text"></div>
+            </div>
+
             <div class="sidebar-foot">
                 <div class="foot-title">About</div>
                 <p class="foot-text">
@@ -48,10 +53,11 @@
 
             <nav class="tabs">
                 <button class="tab active" data-tab="overview">Overview</button>
-                <button class="tab" data-tab="prediction">Prediction</button>
+                <button class="tab" data-tab="preprocessing">Preprocessing</button>
                 <button class="tab" data-tab="signal">Signal</button>
                 <button class="tab" data-tab="psd">Frequency</button>
                 <button class="tab" data-tab="connectivity">Connectivity</button>
+                <button class="tab" data-tab="prediction">Prediction</button>
             </nav>
 
             <!-- OVERVIEW -->
@@ -67,8 +73,8 @@
                     </p>
                     <div class="intro-steps">
                         <div class="intro-step"><span class="step-num a">1</span> Load a .set file</div>
-                        <div class="intro-step"><span class="step-num b">2</span> Explore signal & bands</div>
-                        <div class="intro-step"><span class="step-num a">3</span> Inspect connectivity</div>
+                        <div class="intro-step"><span class="step-num b">2</span> Preprocess (optional)</div>
+                        <div class="intro-step"><span class="step-num a">3</span> Explore & inspect</div>
                         <div class="intro-step"><span class="step-num b">4</span> Run prediction</div>
                     </div>
                 </div>
@@ -148,6 +154,7 @@
                     <div class="capabilities">
                         <div class="cap-title">Available analyses</div>
                         <div class="cap-list">
+                            <span class="cap">Preprocessing</span>
                             <span class="cap">Signal viewer</span>
                             <span class="cap">Frequency bands (PSD)</span>
                             <span class="cap">PLV connectivity</span>
@@ -158,48 +165,54 @@
                 </div>
             </section>
 
-            <!-- PREDICTION -->
-            <section id="tab-prediction" class="tab-panel">
-                <div class="pred-layout">
-                    <div class="pred-left">
-                        <div class="model-card">
-                            <div class="model-head">
-                                <span class="model-name">PLVNet</span>
-                                <span class="model-tag">CNN · connectivity</span>
-                            </div>
-                            <div class="model-arch" id="modelArch"></div>
-                            <div class="model-facts">
-                                <div class="mf"><span>Input</span><strong>19×19 PLV (alpha)</strong></div>
-                                <div class="mf"><span>Type</span><strong>2-layer CNN + GAP</strong></div>
-                                <div class="mf"><span>Task</span><strong>AD vs HC</strong></div>
-                                <div class="mf"><span>Validation</span><strong>Leave-one-subject-out</strong></div>
-                            </div>
-                        </div>
-                        <button id="analyzeBtn" class="primary-btn wide">Run AD prediction</button>
+            <!-- PREPROCESSING -->
+            <section id="tab-preprocessing" class="tab-panel">
+                <p class="panel-intro">
+                    Configure preprocessing once here. These settings are applied
+                    to every analysis (signal, frequency, connectivity).
+                </p>
+
+                <div class="pp-grid">
+                    <div class="pp-card">
+                        <div class="pp-head"><span class="pp-icon icon-a">🔽</span> Resample</div>
+                        <label class="pp-label">Target rate (Hz) · 0 = keep original</label>
+                        <select id="ppResample" class="pp-input">
+                            <option value="0">Keep original</option>
+                            <option value="128">128 Hz</option>
+                            <option value="256">256 Hz</option>
+                            <option value="512">512 Hz</option>
+                        </select>
                     </div>
 
-                    <div class="pred-right">
-                        <div id="predPlaceholder" class="pred-empty">
-                            <div class="placeholder-icon">🧬</div>
-                            <p>Run the model to see a recording-level assessment.</p>
-                        </div>
-                        <div id="result" class="result hidden">
-                            <div class="result-hero">
-                                <span id="prediction" class="hero-label"></span>
-                                <span class="hero-caption">Recording-level assessment</span>
-                            </div>
-                            <div class="cards two">
-                                <div class="card">
-                                    <div class="card-title">AD PROBABILITY</div>
-                                    <div id="adProb" class="card-value accent-cyan"></div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-title">TOTAL WINDOWS</div>
-                                    <div id="nWindows" class="card-value accent-purple"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="pp-card">
+                        <div class="pp-head"><span class="pp-icon icon-b">🎚</span> Band-pass filter</div>
+                        <label class="pp-label">High-pass (Hz) · 0 = off</label>
+                        <input type="number" id="ppLow" class="pp-input" value="0" min="0" step="0.5">
+                        <label class="pp-label">Low-pass (Hz) · 0 = off</label>
+                        <input type="number" id="ppHigh" class="pp-input" value="0" min="0" step="1">
                     </div>
+
+                    <div class="pp-card">
+                        <div class="pp-head"><span class="pp-icon icon-a">⚡</span> Notch filter</div>
+                        <label class="pp-label">Line noise (Hz) · 0 = off</label>
+                        <select id="ppNotch" class="pp-input">
+                            <option value="0">Off</option>
+                            <option value="50">50 Hz</option>
+                            <option value="60">60 Hz</option>
+                        </select>
+                    </div>
+
+                    <div class="pp-card">
+                        <div class="pp-head"><span class="pp-icon icon-b">✂️</span> Drop channels</div>
+                        <label class="pp-label">Uncheck channels to remove them</label>
+                        <div id="ppChannelList" class="channel-list pp-channels"></div>
+                    </div>
+                </div>
+
+                <div class="pp-actions">
+                    <button id="applyPpBtn" class="primary-btn">Apply preprocessing</button>
+                    <button id="resetPpBtn" class="secondary-btn">Reset</button>
+                    <span id="ppStatus" class="pp-status"></span>
                 </div>
             </section>
 
@@ -259,6 +272,51 @@
                 <div id="connContainer" class="plot-container hidden">
                     <img id="connImg" alt="PLV connectivity" class="plot-img">
                     <p id="connDesc" class="plot-desc"></p>
+                </div>
+            </section>
+
+            <!-- PREDICTION -->
+            <section id="tab-prediction" class="tab-panel">
+                <div class="pred-layout">
+                    <div class="pred-left">
+                        <div class="model-card">
+                            <div class="model-head">
+                                <span class="model-name">GCN</span>
+                                <span class="model-tag">GNN · connectivity graph</span>
+                            </div>
+                            <div class="model-arch" id="modelArch"></div>
+                            <div class="model-facts">
+                                <div class="mf"><span>Input</span><strong>19-node PLV graph (alpha)</strong></div>
+                                <div class="mf"><span>Type</span><strong>2-layer GCN + MLP</strong></div>
+                                <div class="mf"><span>Aggregation</span><strong>Soft voting over epochs</strong></div>
+                                <div class="mf"><span>Baseline</span><strong>85% bal. acc (LOSO)</strong></div>
+                            </div>
+                        </div>
+                        <button id="analyzeBtn" class="primary-btn wide">Run AD prediction</button>
+                    </div>
+
+                    <div class="pred-right">
+                        <div id="predPlaceholder" class="pred-empty">
+                            <div class="placeholder-icon">🧬</div>
+                            <p>Run the model to see a recording-level assessment.</p>
+                        </div>
+                        <div id="result" class="result hidden">
+                            <div class="result-hero">
+                                <span id="prediction" class="hero-label"></span>
+                                <span class="hero-caption">Recording-level assessment</span>
+                            </div>
+                            <div class="cards two">
+                                <div class="card">
+                                    <div class="card-title">AD PROBABILITY</div>
+                                    <div id="adProb" class="card-value accent-cyan"></div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-title">TOTAL WINDOWS</div>
+                                    <div id="nWindows" class="card-value accent-purple"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
